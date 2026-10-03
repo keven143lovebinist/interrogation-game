@@ -1785,16 +1785,16 @@ const LB={g:'AI ONLINE',y:'AI CONNECTING',r:'AI OFFLINE'};let S='r',KEY='',ORIG=
 const cfg=()=>{try{return JSON.parse(ls.get('cfi.ai'))||{}}catch(e){return{}}};
 const savecfg=o=>ls.set('cfi.ai',JSON.stringify(Object.assign({p:'groq'},cfg(),o)));
 function setS(s,persist){S=s;qa('[data-st]').forEach(e=>{e.classList.remove('on-g','on-y','on-r');e.classList.add('on-'+s);e.querySelector('[data-tx]').textContent=LB[s]});q('#core').classList.toggle('on',s=='y');if(persist&&s!='y')savecfg({st:s});q('#kdel').style.display=KEY?'':'none';q('#kmask').textContent=KEY?'KEY LOADED  ••••••'+KEY.slice(-4):''}
-const ad={json:async p=>{const ms=[{role:'system',content:'You play a suspect in a fictional police-interrogation video game. Follow the rules in the user message exactly. Reply with one JSON object only.'},{role:'user',content:p}];
-try{const t=await groq(ms,{json:1});const o=JSON.parse(t.replace(/^\s*```(?:json)?|```\s*$/g,'').trim());if(!o||typeof o.line!='string'||!o.line.trim())throw new Error('x');o.line=o.line.slice(0,500);if(!MD.includes(o.mood))delete o.mood;if(!Array.isArray(o.unlock))o.unlock=[];if(S!='g')setS('g',1);return o}
+const ad={json:async p=>{const ms=[{role:'system',content:'You play a suspect in a fictional police-interrogation video game. Sound like a real person under stress, never like an AI: short natural speech, contractions, hesitation, and emotion that matches your stage. First answer the detectives exact latest question, then add a small human reaction such as deflecting, getting defensive, or asking something back. Never repeat a sentence or phrase you already said in the transcript. Use specific details from your cover story (times, places, names) instead of vague replies. No stage directions, no asterisks. Follow the rules in the user message exactly. Reply with one JSON object only.'},{role:'user',content:p}];
+try{const t=await groq(ms,{json:1,temp:.85,max:300});const o=JSON.parse(t.replace(/^\s*```(?:json)?|```\s*$/g,'').trim());if(!o||typeof o.line!='string'||!o.line.trim())throw new Error('x');o.line=o.line.slice(0,500);if(!MD.includes(o.mood))delete o.mood;if(!Array.isArray(o.unlock))o.unlock=[];if(S!='g')setS('g',1);return o}
 catch(e){if(e.s==401||e.s==403){KEY='';off()}else if(e.s===0)setS('r',1);throw e}}};
 function on(){if(smp!==ad)ORIG=smp;smp=ad}function off(){if(smp===ad)smp=ORIG;setS('r',1)}
 async function groq(ms,o,key){key=key==null?KEY:key;const c=new AbortController(),tm=setTimeout(()=>c.abort(),o.t||20000);
-try{for(;mi<AI.models.length;mi++){const h={'Content-Type':'application/json'};if(!AI.proxy)h.Authorization='Bearer '+key;
+try{for(let mi=0;mi<AI.models.length;mi++){const h={'Content-Type':'application/json'};if(!AI.proxy)h.Authorization='Bearer '+key;
 const r=await fetch(AI.endpoint,{method:'POST',headers:h,signal:c.signal,body:JSON.stringify(Object.assign({model:AI.models[mi],messages:ms,temperature:o.temp==null?.7:o.temp,max_tokens:o.max||320},o.json?{response_format:{type:'json_object'}}:{}))});
 if(r.ok){const d=await r.json();return(d.choices&&d.choices[0].message.content)||''}
 let code='';try{code=((await r.json()).error||{}).code||''}catch(e){}
-if((r.status==404||r.status==400&&/model/i.test(code))&&mi<AI.models.length-1)continue;const e=new Error('http');e.s=r.status;throw e}
+if((r.status==404||r.status==429||r.status>=500||r.status==400&&/model|json/i.test(code))&&mi<AI.models.length-1)continue;const e=new Error('http');e.s=r.status;throw e}
 }catch(e){if(e.s==null)e.s=0;throw e}finally{clearTimeout(tm)}}
 const why=s=>s==401||s==403?'The key was not accepted. Check it and try again.':s==429?'Groq is limiting this key right now. Wait a moment and retry.':s===0?'Could not reach Groq. Check your connection.':'Connection failed. Try again.';
 /* encrypted optional storage */
