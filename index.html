@@ -936,7 +936,7 @@ const caseT=i=>{const c=CASES[i];return[
 const job=(k,i)=>{const T=k=='case'?caseT(i):shared,tot=T.reduce((a,t)=>a+t[0],0);let d=0;const J={done:false,p:()=>d/tot};(async()=>{for(const[w,f]of T){try{await wait(f(),4000)}catch(e){}d+=w;await nf()}J.done=true})();return J};
 window.Ld={job,warm,take:s=>{const f=pre.get(s);pre.delete(s);return f||null},release:()=>pre.clear()};
 new MutationObserver(()=>{if($('#menu').style.display=='flex')Ld.release()}).observe($('#menu'),{attributes:true,attributeFilter:['style']});
-__boot('OPENING CASE ARCHIVE',3300,'ACCESS GRANTED',null,()=>Ld.job('shared'));
+window.__startBoot=()=>{if(window.__booted)return;window.__booted=1;__boot('OPENING CASE ARCHIVE',3300,'ACCESS GRANTED',null,()=>Ld.job('shared'))};setTimeout(()=>{if(!document.getElementById('play'))window.__startBoot()},1500);
 })();
 </script>
 <style id="cx-css">
@@ -1486,7 +1486,7 @@ QUESTIONS ALREADY ASKED: ${MEM.asked.slice(-8).join(' | ')||'none'}
 ${REPW}
 STAGE ${s+1}/6 — ${sg} EMOTION: ${ST[Math.min(s,5)]}. ${can?'The detective has built the case; you may break.':'Do NOT confess yet.'}
 TRANSCRIPT:
-${hist.slice(-40).join('\n')}
+${hist.slice(-14).join('\n')}
 RULES: Answer THIS question specifically (topic: ${topicOf(hist[hist.length-1]||'')}). Every answer must add something new (a detail, a changed stance, a concession) or honestly say you won't answer; never loop. React specifically to any evidence just presented. Never contradict HIDDEN TRUTH or invent a different culprit. 1-3 short sentences. "unlock" = id of ONE lead only if the latest question reasonably targets it, else []. "contradiction" = true only if this answer conflicts with your CLAIMS, TIMELINE, transcript or discovered evidence. "claim" = one short factual claim you just asserted. "admission" = anything newly admitted, else "". "denial" = anything newly denied, else "". "time" = a time you asserted ('left at 11:30'), else "". "tension" = 0 none, 1 slight, 2 high (important contradiction/strong evidence), 3 extreme (major moment only). "clue" = neutral note under 12 words, else "". "confess" = true only at stage 6.
 Reply ONLY JSON: {"line":"","mood":"calm|defensive|nervous|angry|panicked|broken|scared|down","unlock":[],"clue":"","contradiction":false,"claim":"","confess":false,"admission":"","denial":"","time":"","tension":0}`};
 const LP=[["I told you what I know. Nothing happened that I saw.","I wasn't involved in whatever you're suggesting.","I keep to myself. That's all there is.","Ask me something useful. I've got nothing to add."],
@@ -1744,11 +1744,11 @@ document.addEventListener('visibilitychange',()=>H.classList.toggle('an5-hid',do
 <script id="mm-js">
 (()=>{
 /* ===== central config ===== */
-const APP_VERSION="00.01.00";
-const UPDATE_NOTES=["Game now runs on the web: AI works with no key needed","Case 008 teaser added: coming soon","Added the main menu: Case Selection, AI / API Setup, Data Context, Update Log","Added Groq AI connection with live status light and connection test","Suspects can answer through your own Groq key and fall back to built-in answers when AI is offline","Added progress tracking that survives reloads","Added cinematic menu transitions and a mobile layout","The in-game MENU button now returns to the main menu"];
+const APP_VERSION="00.02.00";
+const UPDATE_NOTES=["New animated Play screen with sound effects","Suspect AI now locked to the case timeline and story","Game now runs on the web: AI works with no key needed","Case 008 teaser added: coming soon","Added the main menu: Case Selection, AI / API Setup, Data Context, Update Log","Added Groq AI connection with live status light and connection test","Suspects can answer through your own Groq key and fall back to built-in answers when AI is offline","Added progress tracking that survives reloads","Added cinematic menu transitions and a mobile layout","The in-game MENU button now returns to the main menu"];
 const IN_CLAUDE=!!window.claude;
 const WEB=!IN_CLAUDE&&/^https?:$/.test(location.protocol);
-const AI={endpoint:WEB?"/.netlify/functions/chat":"https://api.groq.com/openai/v1/chat/completions",models:["llama-3.3-70b-versatile","llama-3.1-8b-instant"],proxy:WEB};
+const AI={endpoint:WEB?"/.netlify/functions/chat":"https://api.groq.com/openai/v1/chat/completions",models:WEB?["auto"]:["llama-3.3-70b-versatile","llama-3.1-8b-instant"],proxy:WEB};
 /* ========================== */
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)],wt=ms=>new Promise(r=>setTimeout(r,ms));
 const RM=matchMedia('(prefers-reduced-motion:reduce)').matches,F=RM?.3:1;
@@ -1848,5 +1848,93 @@ setS('y');groq([{role:'user',content:'Respond with CONNECTED.'}],{max:8,temp:0,t
 if(c0.rem&&ls.get('cfi.k')){unseal(ls.get('cfi.k')).then(k=>{KEY=k;on();setS(c0.st=='g'||c0.st=='on'?'g':'r')}).catch(()=>{ls.del('cfi.k');savecfg({rem:0})})}
 document.addEventListener('visibilitychange',()=>{mm.classList.toggle('hold',document.hidden)});
 })();
+</script>
+<style id="play-css">
+#play{position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at 50% 38%,#1b212e 0,#07090d 72%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;overflow:hidden;font-family:"Courier New",monospace;color:#e0a84a;transition:opacity 1s,transform 1s,filter 1s;user-select:none;-webkit-user-select:none}
+#play.go{opacity:0;transform:scale(1.18);filter:blur(6px);pointer-events:none}
+#play .beam{position:absolute;top:-8%;left:50%;width:90vmax;height:125%;transform-origin:50% 0;background:linear-gradient(#f3d9a02e,#f3d9a000 75%);clip-path:polygon(47% 0,53% 0,100% 100%,0 100%);animation:pbs 8s ease-in-out infinite alternate}
+@keyframes pbs{from{transform:translateX(-50%) rotate(-14deg)}to{transform:translateX(-50%) rotate(14deg)}}
+#play .fl{position:absolute;left:var(--x);top:0;opacity:0;color:var(--c);filter:drop-shadow(0 0 7px #e0a84a55);animation:pfl var(--d) linear infinite;animation-delay:var(--dl)}
+@keyframes pfl{0%{transform:translateY(108vh) rotate(var(--r0));opacity:0}12%,88%{opacity:.5}100%{transform:translateY(-22vh) rotate(var(--r1));opacity:0}}
+#play .ecg{position:absolute;left:0;top:50%;width:100%;height:120px;transform:translateY(-50%);opacity:.35}
+#play .ecg path{fill:none;stroke:#d1432f;stroke-width:2;stroke-dasharray:.22 1;animation:pec 2.6s linear infinite;filter:drop-shadow(0 0 5px #d1432f)}
+@keyframes pec{from{stroke-dashoffset:.22}to{stroke-dashoffset:-1}}
+#play .mo{position:absolute;width:3px;height:3px;border-radius:50%;background:#f3d9a0;left:var(--x);bottom:-10px;opacity:0;animation:pmo var(--d) linear infinite;animation-delay:var(--dl)}
+@keyframes pmo{0%{transform:translateY(0);opacity:0}15%{opacity:.7}100%{transform:translate(var(--s),-105vh);opacity:0}}
+#play h1{position:relative;margin:0;font-size:clamp(26px,8.5vw,64px);letter-spacing:.14em;text-align:center;font-weight:700;text-shadow:0 0 22px #e0a84a66;z-index:2}
+#play h1 span{display:inline-block;animation:ptl 5s infinite both;animation-delay:calc(var(--i)*.07s)}
+@keyframes ptl{0%,86%,100%{opacity:1;transform:none}88%{opacity:.25;transform:translateY(-2px)}91%{opacity:1}94%{opacity:.5;transform:translateX(2px)}}
+#play .sb{position:relative;z-index:2;font-size:clamp(11px,3.3vw,15px);letter-spacing:.42em;color:#d1432f;animation:pbl 1.6s ease-in-out infinite}
+@keyframes pbl{50%{opacity:.35}}
+#pb{position:relative;z-index:2;display:flex;align-items:center;gap:14px;padding:18px 46px;font:700 clamp(20px,6vw,28px) "Courier New",monospace;letter-spacing:.38em;color:#e0a84a;background:linear-gradient(135deg,#1a1d26,#0b0d12);border:2px solid #e0a84a;border-radius:6px;cursor:pointer;overflow:visible;box-shadow:0 0 28px #e0a84a44,inset 0 0 18px #e0a84a22;animation:ppl 2.2s ease-in-out infinite;transition:transform .2s}
+@keyframes ppl{50%{box-shadow:0 0 52px #e0a84a88,inset 0 0 26px #e0a84a33}}
+#pb:hover{transform:scale(1.06)}#pb:active,#pb.hit{transform:scale(.94)}
+#pb svg{width:26px;height:26px;fill:currentColor;filter:drop-shadow(0 0 6px currentColor)}
+#pb::before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,#fff6 50%,transparent 65%);transform:translateX(-120%);animation:psh 3s ease-in-out infinite}
+@keyframes psh{60%,100%{transform:translateX(120%)}}
+#pb .rg{position:absolute;inset:-2px;border:2px solid #d1432f;border-radius:6px;pointer-events:none;animation:prg 2.4s ease-out infinite}#pb .r2{animation-delay:1.2s}
+@keyframes prg{from{transform:scale(1);opacity:.8}to{transform:scale(1.55,1.9);opacity:0}}
+#pb.hit{background:#e0a84a;color:#07090d;box-shadow:0 0 90px #e0a84a}
+#play .hn{position:relative;z-index:2;font-size:11px;letter-spacing:.3em;opacity:.55;animation:pbl 2.4s infinite}
+#pm{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:14px;z-index:3;background:none;border:1px solid #e0a84a66;color:#e0a84a;border-radius:4px;padding:6px 10px;font:12px "Courier New",monospace;letter-spacing:.15em}
+@media(prefers-reduced-motion:reduce){#play *{animation-duration:.01ms!important;animation-iteration-count:1!important}}
+</style>
+<div id="play"><div class="beam"></div><svg class="ecg" viewBox="0 0 600 100" preserveAspectRatio="none"><path pathLength="1" d="M0 50H200l10-5 8 5h22l8-34 14 70 12-36h40H600"/></svg><button id="pm">SOUND ON</button>
+<h1 id="pt">THE INTERROGATION</h1><div class="sb">CASE FILES // CLASSIFIED</div>
+<button id="pb"><i class="rg"></i><i class="rg r2"></i><svg viewBox="0 0 24 24"><path d="M6 3.5l15 8.5-15 8.5z"/></svg>PLAY</button><div class="hn">TAP PLAY TO OPEN THE ARCHIVE</div></div>
+<script id="play-js">
+(()=>{const P=document.getElementById('play'),$=s=>P.querySelector(s),R=(a,b)=>a+Math.random()*(b-a);
+const IC=[n=>`<svg viewBox="0 0 60 48"><path d="M3 8h20l5 6h29v30H3z" fill="none" stroke="currentColor" stroke-width="2"/><text x="30" y="35" font-size="9" text-anchor="middle" fill="currentColor" font-family="Courier New">CASE #00${n}</text></svg>`,
+()=>`<svg viewBox="0 0 60 60"><circle cx="24" cy="24" r="14" fill="none" stroke="currentColor" stroke-width="3"/><path d="M34 34l16 16" stroke="currentColor" stroke-width="5"/></svg>`,
+()=>`<svg viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 44Q10 10 30 10Q50 10 50 44M16 48Q16 18 30 18Q44 18 44 48M22 50Q22 26 30 26Q38 26 38 50M30 34V54"/></svg>`,
+()=>`<svg viewBox="0 0 60 40"><path d="M4 6h36l16 14-16 14H4z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="20" r="3" fill="currentColor"/><text x="25" y="23" font-size="7" fill="currentColor" font-family="Courier New">EVIDENCE</text></svg>`,
+()=>`<svg viewBox="0 0 40 60"><circle cx="20" cy="14" r="9" fill="currentColor"/><path d="M20 23v34" stroke="currentColor" stroke-width="3"/></svg>`,
+()=>`<svg viewBox="0 0 70 30"><rect x="2" y="4" width="66" height="22" fill="none" stroke="currentColor" stroke-width="2"/><text x="35" y="20" font-size="11" text-anchor="middle" fill="currentColor" font-family="Courier New">CLASSIFIED</text></svg>`];
+for(let i=0;i<20;i++){const e=document.createElement('div'),k=i%IC.length,w=R(38,84);e.className='fl';e.style.cssText=`--x:${R(0,92)}%;--d:${R(15,32)}s;--dl:-${R(0,30)}s;--r0:${R(-35,35)}deg;--r1:${R(-70,70)}deg;--c:${k==4||k==5?'#d1432f':'#e0a84a'};width:${w}px`;e.innerHTML=IC[k](1+i%7);$('.beam').after(e)}
+for(let i=0;i<26;i++){const e=document.createElement('b');e.className='mo';e.style.cssText=`--x:${R(0,100)}%;--d:${R(8,18)}s;--dl:-${R(0,18)}s;--s:${R(-40,40)}px`;P.append(e)}
+const h=$('#pt');h.innerHTML=[...h.textContent].map((c,i)=>`<span style="--i:${i}">${c==' '?'&nbsp;':c}</span>`).join('');
+/* ===== sound engine (all synthesized, no files) ===== */
+const SFX=(()=>{let X,M,rv,nz,A=null,hbT=0,thT=0,mute=false;try{mute=localStorage.getItem('cfi.mute')=='1'}catch(e){}
+const T=()=>X.currentTime,G=(v,t0)=>{const g=X.createGain();g.gain.value=v;return g},
+env=(g,a,pk,d)=>{const t=T();g.gain.cancelScheduledValues(t);g.gain.setValueAtTime(1e-4,t);g.gain.exponentialRampToValueAtTime(pk,t+a);g.gain.exponentialRampToValueAtTime(1e-4,t+a+d)};
+function init(){try{if(!X){X=new(window.AudioContext||window.webkitAudioContext)();M=G(mute?0:.9);const cp=X.createDynamicsCompressor();M.connect(cp);cp.connect(X.destination);
+const L=X.sampleRate*2.6|0,ib=X.createBuffer(2,L,X.sampleRate);for(let c=0;c<2;c++){const d=ib.getChannelData(c);for(let i=0;i<L;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/L,2.7)}
+rv=X.createConvolver();rv.buffer=ib;const rg=G(.38);M.connect(rv);rv.connect(rg);rg.connect(cp);
+nz=X.createBuffer(1,X.sampleRate*3,X.sampleRate);const d=nz.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+if(X.state=='suspended')X.resume()}catch(e){}}
+const N=()=>{const s=X.createBufferSource();s.buffer=nz;s.loop=true;return s};
+function thump(dl,v){const t=T()+dl,o=X.createOscillator(),g=G(1e-4);o.type='sine';o.frequency.setValueAtTime(95,t);o.frequency.exponentialRampToValueAtTime(38,t+.22);g.gain.exponentialRampToValueAtTime(v,t+.02);g.gain.exponentialRampToValueAtTime(1e-4,t+.3);o.connect(g).connect(M);o.start(t);o.stop(t+.35)}
+function thunder(){if(!A)return;const s=N(),f=X.createBiquadFilter(),g=G(1e-4),t=T();f.type='lowpass';f.frequency.setValueAtTime(260,t);f.frequency.exponentialRampToValueAtTime(60,t+3);g.gain.exponentialRampToValueAtTime(.55,t+.4);g.gain.exponentialRampToValueAtTime(1e-4,t+3.4);s.connect(f).connect(g).connect(M);s.start(t,Math.random()*2);s.stop(t+3.5)}
+function ambient(){if(!X||A)return;const t=T(),out=G(1e-4);out.gain.exponentialRampToValueAtTime(1,t+2.5);out.connect(M);const nodes=[];
+const lp=X.createBiquadFilter();lp.type='lowpass';lp.frequency.value=260;const lfo=X.createOscillator(),lg=G(110);lfo.frequency.value=.07;lfo.connect(lg).connect(lp.frequency);lfo.start();nodes.push(lfo);
+[[55,'sawtooth',.05],[55.45,'sawtooth',.05],[27.5,'sine',.12],[82.4,'triangle',.035],[98,'triangle',.025]].forEach(([f,ty,v])=>{const o=X.createOscillator();o.type=ty;o.frequency.value=f;o.connect(G(v)).connect(lp);o.start();nodes.push(o)});lp.connect(out);
+const r=N(),rb=X.createBiquadFilter(),rh=X.createBiquadFilter(),rgn=G(.055);rb.type='bandpass';rb.frequency.value=3800;rb.Q.value=.4;rh.type='highpass';rh.frequency.value=1500;r.connect(rb).connect(rh).connect(rgn).connect(out);r.start();nodes.push(r);
+const rm=N(),rl=X.createBiquadFilter();rl.type='lowpass';rl.frequency.value=140;rm.connect(rl).connect(G(.22)).connect(out);rm.start();nodes.push(rm);
+A={out,nodes};beat(1100);thT=setTimeout(function f(){thunder();thT=setTimeout(f,R(9000,16000))},R(4000,7000))}
+function beat(ms){clearInterval(hbT);hbT=setInterval(()=>{if(!X||document.hidden)return;thump(0,.5);thump(.2,.32)},ms)}
+function fade(s=2.4){if(!A)return;const a=A,t=T();clearInterval(hbT);clearTimeout(thT);a.out.gain.cancelScheduledValues(t);a.out.gain.setValueAtTime(a.out.gain.value,t);a.out.gain.exponentialRampToValueAtTime(1e-4,t+s);setTimeout(()=>a.nodes.forEach(n=>{try{n.stop()}catch(e){}}),s*1000+200);A=null}
+function whoosh(d=.7,a=300,b=3200){if(!X)return;const s=N(),f=X.createBiquadFilter(),g=G(1e-4),t=T();f.type='bandpass';f.Q.value=.8;f.frequency.setValueAtTime(a,t);f.frequency.exponentialRampToValueAtTime(b,t+d);g.gain.exponentialRampToValueAtTime(.4,t+d*.5);g.gain.exponentialRampToValueAtTime(1e-4,t+d);s.connect(f).connect(g).connect(M);s.start(t,Math.random()*2);s.stop(t+d+.1)}
+function stamp(){if(!X)return;thump(0,1);const t=T(),s=N(),f=X.createBiquadFilter(),g=G(1e-4);f.type='bandpass';f.frequency.value=1800;g.gain.exponentialRampToValueAtTime(.5,t+.005);g.gain.exponentialRampToValueAtTime(1e-4,t+.09);s.connect(f).connect(g).connect(M);s.start(t);s.stop(t+.12);[[880,.05],[1320,.12]].forEach(([fr,dl])=>{const o=X.createOscillator(),k=G(1e-4);o.type='square';o.frequency.value=fr;k.gain.setValueAtTime(1e-4,t+dl);k.gain.exponentialRampToValueAtTime(.05,t+dl+.004);k.gain.exponentialRampToValueAtTime(1e-4,t+dl+.12);o.connect(k).connect(M);o.start(t+dl);o.stop(t+dl+.14)})}
+function riser(d=3.2){if(!X)return;const t=T(),o=X.createOscillator(),f=X.createBiquadFilter(),g=G(1e-4);o.type='sawtooth';o.frequency.setValueAtTime(70,t);o.frequency.exponentialRampToValueAtTime(520,t+d);f.type='lowpass';f.frequency.setValueAtTime(200,t);f.frequency.exponentialRampToValueAtTime(3000,t+d);g.gain.exponentialRampToValueAtTime(.09,t+d*.9);g.gain.exponentialRampToValueAtTime(1e-4,t+d+.15);o.connect(f).connect(g).connect(M);o.start(t);o.stop(t+d+.2);beat(620);setTimeout(()=>beat(1100),d*1000)}
+function tick(){if(!X)return;const t=T(),o=X.createOscillator(),g=G(1e-4);o.type='sine';o.frequency.value=1250+Math.random()*300;g.gain.exponentialRampToValueAtTime(.06,t+.003);g.gain.exponentialRampToValueAtTime(1e-4,t+.05);o.connect(g).connect(M);o.start(t);o.stop(t+.06)}
+function boom(){if(!X)return;thump(0,1);whoosh(.9,200,2400)}
+function setMute(m){mute=m;try{localStorage.setItem('cfi.mute',m?'1':'0')}catch(e){}if(M)M.gain.setTargetAtTime(m?0:.9,T(),.05)}
+document.addEventListener('visibilitychange',()=>{if(!X)return;document.hidden?X.suspend():X.resume()});
+return{init,ambient,fade,stamp,whoosh,riser,tick,boom,setMute,get mute(){return mute}}})();
+const pm=$('#pm');pm.textContent=SFX.mute?'SOUND OFF':'SOUND ON';pm.onclick=e=>{e.stopPropagation();SFX.init();SFX.setMute(!SFX.mute);pm.textContent=SFX.mute?'SOUND OFF':'SOUND ON';if(!SFX.mute)SFX.ambient()};
+P.addEventListener('pointerdown',()=>{SFX.init();SFX.ambient()},{once:true});
+/* loading screen sounds: watch the existing #boot element */
+const B=document.getElementById('boot');let was='none',ok=0,op=0;
+new MutationObserver(()=>{const d=getComputedStyle(B).display,c=B.className;if(d!='none'&&was=='none'){ok=op=0;SFX.riser(3)}was=d;if(/\bok\b/.test(c)&&!ok){ok=1;SFX.stamp()}if(/\bopen\b/.test(c)&&!op){op=1;SFX.boom();setTimeout(()=>SFX.fade(2.6),1400)}}).observe(B,{attributes:true,attributeFilter:['class','style']});
+const BL=document.getElementById('blines');if(BL)new MutationObserver(()=>SFX.tick()).observe(BL,{childList:true});
+/* play */
+let went=0;const pb=$('#pb');pb.onclick=()=>{if(went)return;went=1;SFX.init();SFX.ambient();SFX.stamp();SFX.whoosh(.8,250,3500);pb.classList.add('hit');setTimeout(()=>P.classList.add('go'),420);setTimeout(()=>{window.__startBoot&&window.__startBoot()},520);setTimeout(()=>P.remove(),1800)};
+})();
+/* ===== AI case lock, validation, debug ===== */
+(()=>{try{if(typeof CASES!='undefined'&&CASES[6]&&!CASES[6].tl)CASES[6].tl=['6:52 PM Elena texts Daniel "Come alone. I found the file."','7:16 PM Daniel arrives at 17 Blackwood Lane','7:28 PM Elena arrives and parks far away','7:34 PM Elena enters the house','7:41 PM Daniel says he already sent copies of the financial evidence','7:46 PM argument becomes heated','7:49 PM Daniel records audio','7:53 PM physical struggle begins','7:55 PM Elena strikes Daniel with a heavy object','7:58 PM Daniel smartwatch records a sharp heart-rate change','8:02 PM Elena stages the scene','8:08 PM Daniel condition worsens','8:11 PM false text sent from Daniel phone','8:14 PM Elena takes the USB drive','8:18 PM Elena leaves','8:23 PM security camera captures Elena leaving','8:29 PM Elena drives away'];}catch(e){}
+const LOCK=()=>{const tl=(C.tl||[]).join(' ; ');return`\nTRUE TIMELINE (what really happened; you know it, but speak only per your COVER STORY until evidence breaks it): ${tl||'see HIDDEN TRUTH'}\nCASE LOCK: You are ${C.name}, the suspect about ${C.vic}. Facts come ONLY from HIDDEN TRUTH, COVER STORY, TRUE TIMELINE, evidence and your memory above. For any question about a time or place, compare it to the TRUE TIMELINE, then answer with the version in your COVER STORY (a lie, deflection, or "I don't remember" if the truth hurts you). NEVER invent a new location, person, witness, object, time, motive or relationship. If unsure say "I don't remember" or "I'm not answering that". Keep every earlier claim consistent; if the detective exposes a contradiction, respond to that contradiction instead of repeating yourself.\n`};
+if(typeof window.__bp=='function'){const _bp=window.__bp;window.__bp=function(){let p=_bp.apply(this,arguments);try{p=p.includes('\nRULES:')?p.replace('\nRULES:',()=>LOCK()+'RULES:'):p+LOCK()}catch(e){}return p}}
+if(typeof think=='function'){const _t=think;think=async function(q){const r=await _t.apply(this,arguments);try{if(r&&typeof r.line=='string'){if(/\b(as an ai|language model|i am an ai|i'm an ai|openai|groq)\b/i.test(r.line))return local(q);if(r.confess&&!(C.need(presented)&&presented.size>=C.auto))r.confess=false}}catch(e){}return r}}
+if(/[?&]debug=1/.test(location.search)){const d=document.createElement('pre');d.style.cssText='position:fixed;left:6px;bottom:6px;z-index:99999;max-width:92vw;max-height:40vh;overflow:auto;margin:0;padding:8px;font:10px monospace;color:#7fffb0;background:#000c;border:1px solid #7fffb055;white-space:pre-wrap';document.body.append(d);setInterval(()=>{try{d.textContent=`DEBUG\nCASE ${C.n} | SUSPECT ${C.name}\nSTAGE ${ST[stage()]}\nLAST Q ${hist[hist.length-1]||'-'}\nCLAIMS ${claims.join(' | ')||'-'}\nTIMELINE ${(C.tl||[]).length} lines\nFOUND ${[...found]} PRESENTED ${[...presented]}\nAI CONTEXT LOADED`}catch(e){d.textContent='DEBUG (no case open)'}},800)}})();
 </script>
 </body></html>
