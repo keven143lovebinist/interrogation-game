@@ -1545,8 +1545,8 @@ const clampMood=(m,s)=>{let i=ST.indexOf(m);if(m=='scared')i=Math.min(2,s+1);if(
 const _t=think;
 think=async function(q){const pe=curEv(),tp=topicOf(q),s0=st();MEM.asked.push(q.replace(/\s+/g,' ').slice(0,80));
 if(pe)setLv(Math.max(MEM.lv,1));
-let r=await _t(q);r.line=String(r.line||'...');
-if(rep(r.line)&&!r.confess){REPW='REPETITION WARNING: your last answer repeated an earlier line. Answer this question with NEW content and different wording; try a new angle: '+tp+'.';try{const r2=await _t(q);if(r2&&r2.line&&!rep(r2.line))r=r2}catch(e){}REPW='';if(rep(r.line)){const lc=window.__lc(q);r.line=lc.line;r.admission=r.admission||lc.admission}}
+let r=await _t(q);if(!r||r.aiError){MEM.asked.pop();return r}r.line=String(r.line||'...');
+if(rep(r.line)&&!r.confess){REPW='REPETITION WARNING: your last answer repeated an earlier line. Answer this question with NEW content and different wording; try a new angle: '+tp+'.';try{const r2=await _t(q);if(r2&&!r2.aiError&&r2.line&&!rep(r2.line))r=r2}catch(e){}REPW=''}
 const s=st(),hitNow=!!(pe&&exposed.has(pe)&&!MEM.seen.has(pe));if(pe)MEM.seen.add(pe);
 r.mood=clampMood(r.mood,s);if(r.mood=='broken'&&!r.confess&&s<5)r.mood='panicked';
 if(r.admission)MEM.adm.push(r.admission);if(r.denial)MEM.den.push(r.denial);if(r.time)MEM.tl.push(r.time);
@@ -1651,6 +1651,7 @@ asked.push(key);if(d<=1){if(++flat>=2)d-=2}else flat=0;d=Math.max(-8,Math.min(18
 const prog=presented.size+cc*.8+valid()*.5+hits*1.2,cap=Math.min(99,28+prog*14),full=C._n0(presented)&&(cc>=1||hits>=1)&&prog>=Math.max(3,C.auto*.8);
 let n=cpT+d;if(d>0)n=Math.min(n,Math.max(cpT,cap));if(n>=99.5)n=Math.max(cpT,Math.min(n,cap,99));return{n,tag,d}}
 const _think=think;think=async function(q){const r=await _think.apply(this,arguments);
+if(r&&r.aiError)return r;
 try{if(C&&!C._n0){C._n0=C.need;C.need=p=>C._n0(p)&&cpT>=99.5}
 const v=evalTurn(String(q||''),r);if(v.tag&&v.d>=9){fx(v.tag);await sl(750)}
 if(CP>=80)await sl(CP>=95?1500:700);setT(v.n);r.confess=cpT>=99.5}catch(e){console.error(e)}return r};
@@ -1826,7 +1827,7 @@ const savecfg=o=>ls.set('cfi.ai',JSON.stringify(Object.assign({p:'groq'},cfg(),o
 function setS(s,persist){S=s;qa('[data-st]').forEach(e=>{e.classList.remove('on-g','on-y','on-r');e.classList.add('on-'+s);e.querySelector('[data-tx]').textContent=LB[s]});q('#core').classList.toggle('on',s=='y');if(persist&&s!='y')savecfg({st:s});q('#kdel').style.display=KEY?'':'none';q('#kmask').textContent=KEY?'KEY LOADED  ••••••'+KEY.slice(-4):''}
 window.__aiStatus=v=>setS(v,v!='y');
 function parseAI(t){const fin=o=>{if(!o||typeof o!=='object'||typeof o.line!=='string')return null;const l=o.line.trim();if(!l)return null;o.line=l.slice(0,500);if(!MD.includes(o.mood))delete o.mood;if(!Array.isArray(o.unlock))o.unlock=[];return o};
-const fromObj=o=>{if(!o||typeof o!=='object')return null;const c=o.choices&&o.choices[0]&&o.choices[0].message&&o.choices[0].message.content;if(c!=null)return parseAI(c);if(typeof o.line==='string')return fin(o);for(const k of['reply','response','result','data','content','text','output'])if(o[k]!=null&&o[k]!==o){const r=parseAI(o[k]);if(r)return r}return null};
+const fromObj=o=>{if(!o||typeof o!=='object')return null;const ch=o.choices&&o.choices[0],c0=ch&&((ch.message&&ch.message.content)!=null?ch.message.content:ch.text),c=Array.isArray(c0)?c0.map(x=>typeof x=='string'?x:(x&&x.text)||'').join(''):c0;if(c!=null)return parseAI(c);if(typeof o.line==='string')return fin(o);for(const k of['reply','response','result','data','content','text','output','answer','message','dialogue','speech','statement'])if(o[k]!=null&&o[k]!==o){const r=parseAI(o[k]);if(r)return r}return null};
 if(t==null)return null;if(typeof t==='object')return fromObj(t);
 const s=String(t).trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();if(!s)return null;
 try{const o=JSON.parse(s);if(typeof o==='string')return parseAI(o);if(o&&typeof o==='object')return fromObj(o)}catch(e){}
@@ -2084,30 +2085,44 @@ if(!fd.block&&cpv()>=98.5){setP(99);fd.armed=true;fd.hinted=0;window.FINAL_DECIS
 return r}
 setInterval(()=>{const s=SES.cur;if(!s||s.state!=='active'||!s.fd.armed||s.fd.hinted||busy||done)return;const i=$('#q');if(i&&!i.value){i.value=s.fd.q;s.fd.hinted=1}},400);
 /* ===== AI request: every call carries the case id, session id, full context and state ===== */
-const EPS=['/.netlify/functions/interrogate','/.netlify/functions/chat'],DEADEP=new Set();let AISET=null;try{JSON.parse(sessionStorage.getItem('cfi.deadEP')||'[]').forEach(e=>DEADEP.add(e))}catch(e){}
-const markDead=u=>{DEADEP.add(u);try{sessionStorage.setItem('cfi.deadEP',JSON.stringify([...DEADEP]))}catch(e){}},slp=ms=>new Promise(r=>setTimeout(r,ms)),aiStat=v=>{try{if(v!='y')AISET=v;window.__aiStatus&&window.__aiStatus(v)}catch(e){}};
+const EPS=['/.netlify/functions/interrogate','/.netlify/functions/chat'],DEADEP=new Map(),SHAPE={},DEAD_TTL=300000,REQ_TO=30000;let AISET=null;
+try{sessionStorage.removeItem('cfi.deadEP');const o=JSON.parse(sessionStorage.getItem('cfi.deadEP2')||'{}');Object.keys(o).forEach(u=>{if(Date.now()-o[u]<DEAD_TTL)DEADEP.set(u,o[u])})}catch(e){}
+const isDead=u=>{const t=DEADEP.get(u);if(t==null)return false;if(Date.now()-t>DEAD_TTL){DEADEP.delete(u);return false}return true},
+markDead=u=>{DEADEP.set(u,Date.now());try{sessionStorage.setItem('cfi.deadEP2',JSON.stringify(Object.fromEntries(DEADEP)))}catch(e){}},slp=ms=>new Promise(r=>setTimeout(r,ms)),aiStat=v=>{try{if(v!='y')AISET=v;window.__aiStatus&&window.__aiStatus(v)}catch(e){}};
+/* request diagnostics: type  __aiDiag  in the browser console to see every attempt (endpoint, payload shape, HTTP status, reason, ms) */
+const DIAG=window.__aiDiag=[],dg=o=>{o.t=new Date().toISOString().slice(11,23);DIAG.push(o);if(DIAG.length>40)DIAG.shift();if(o.ok===false){try{console.warn('[AI request failed]',JSON.stringify(o))}catch(e){}}};
+const waitFrom=async(r,def)=>{let w=def;try{const ra=parseFloat(r.headers.get('retry-after'));if(isFinite(ra)&&ra>=0)w=ra*1000;else{const t=await r.clone().text(),m=/try again in\s+([\d.]+)\s*(ms|s|m)\b/i.exec(t);if(m){const v=parseFloat(m[1]);w=m[2]=='ms'?v:m[2]=='m'?v*60000:v*1000}}}catch(e){}return Math.min(15000,Math.max(500,w))};
 window.__aiCall=async function(ms,p){const s=SES.cur;if(!s||s.state!=='active'||!s.ctx)throw mkErr(-1,'stale');
 const sid=s.id,dead=()=>SES.cur!==s||s.state!=='active'||s.id!==sid,x=s.ctx,q=String(hist[hist.length-1]||'').replace(/^DETECTIVE:\s*/,''),msgs=[{role:'system',content:SYS},{role:'user',content:p}],H={'Content-Type':'application/json'};
 const full={caseId:x.caseId,sessionId:sid,question:q,caseContext:x,gameState:live(s),history:hist.slice(-40),evidenceState:{found:[...found],presented:[...presented]},interrogationState:{stage:stageName(cpv()),pressure:cpv(),finalDecisionReady:!!s.fd.armed,memory:memView(s)},prompt:p,messages:msgs};
 const simple={model:'auto',messages:msgs,temperature:.85,max_tokens:320,response_format:{type:'json_object'}};
-const stale=()=>{if(AISET)aiStat(AISET);return mkErr(-1,'stale')};let last=null;aiStat('y');
-/* one request cycle = try the endpoints in order; the whole cycle is retried once before the AI is declared unavailable (nothing here touches the transcript) */
-for(let n=0;n<2;n++){if(dead())throw stale();const ac=new AbortController(),to=setTimeout(()=>ac.abort(),n?20000:25000);s.acs.add(ac);let wait=700;
-try{let data=null,err=null;
-for(const u of EPS){if(DEADEP.has(u)&&EPS.some(v=>!DEADEP.has(v)))continue;let r;
-try{r=await fetch(u,{method:'POST',headers:H,signal:ac.signal,body:JSON.stringify(/\/chat$/.test(u)?simple:full)})}catch(e){if(dead())throw stale();throw mkErr(0,'network')}
-if(r.ok){let d;try{d=await r.json()}catch(e){if(dead())throw stale();throw mkErr(ac.signal.aborted?0:-2,'body')}
-if(dead()||(d&&d.sessionId&&d.sessionId!==sid)||(d&&d.caseId&&d.caseId!==s.caseId))throw stale();data=d;break}
-if(r.status===404||r.status===405){markDead(u);err=mkErr(r.status,'missing');continue}
-err=mkErr(r.status,'http');
-if(r.status===429){const ra=parseFloat(r.headers.get('retry-after'));wait=Math.min(4000,isFinite(ra)?ra*1000:2000);break}
-if(r.status===401||r.status===403)break}
-if(data==null)throw err||mkErr(0,'no endpoint');
-const o=window.__parseAI(data);if(!o)throw mkErr(-2,'unusable');
+const stale=()=>{if(AISET)aiStat(AISET);return mkErr(-1,'stale')};let last=null,nTry=0;aiStat('y');
+/* ONE request = one endpoint + one payload shape, with its own timeout. Returns {o} on success or {err,next}: next = 'shape' (try the other payload shape), 'ep' (try the next endpoint), 'stop' (rate limited: wait, then retry), 'fatal' (bad key: no retry) */
+const one=async(u,sh)=>{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),REQ_TO),t0=Date.now();s.acs.add(ac);
+const L=(ok,st,why)=>dg({q:q.slice(0,40),ep:u.split('/').pop(),shape:sh,attempt:nTry+1,ok,status:st,why:why||'',ms:Date.now()-t0});
+try{let r;
+try{r=await fetch(u,{method:'POST',headers:H,signal:ac.signal,body:JSON.stringify(sh=='full'?full:simple)})}catch(e){if(dead())throw stale();const w=ac.signal.aborted?'timeout':'network';L(false,0,w);return{err:mkErr(0,w),next:'ep'}}
+if(r.ok){let d;try{d=await r.json()}catch(e){if(dead())throw stale();L(false,r.status,'body not JSON');return{err:mkErr(ac.signal.aborted?0:-2,'body'),next:'ep'}}
 if(dead())throw stale();
-s.aiErr=null;s.okTurn=1;aiStat('g');return JSON.stringify(o)}
-catch(e){if(dead()||e.s===-1)throw stale();if(e.s==null)e.s=0;last=e;if(e.s===401||e.s===403)break;if(n===0){await slp(wait);continue}}
-finally{clearTimeout(to);s.acs.delete(ac)}}
+if(d&&d.caseId&&d.caseId!==s.caseId){L(false,r.status,'caseId mismatch');return{err:mkErr(-2,'mismatch'),next:'ep'}}
+const o=window.__parseAI(d);if(!o){let sn='';try{sn=JSON.stringify(d).slice(0,160)}catch(e){}L(false,r.status,'unusable body '+sn);return{err:mkErr(-2,'unusable'),next:'ep'}}
+L(true,r.status,'');return{o}}
+const st=r.status;
+if(st===404||st===405){markDead(u);L(false,st,'endpoint missing');return{err:mkErr(st,'missing'),next:'ep'}}
+if(st===429){const w=await waitFrom(r,2500);L(false,st,'rate limited, wait '+w+'ms');return{err:mkErr(429,'rate'),next:'stop',wait:w}}
+if(st===401||st===403){L(false,st,'auth');return{err:mkErr(st,'auth'),next:'fatal'}}
+let b='';try{b=(await r.text()).slice(0,160)}catch(e){}L(false,st,b);return{err:mkErr(st,'http'),next:'shape'}}
+finally{clearTimeout(to);s.acs.delete(ac)}};
+/* automatic retry: attempt 1 fails -> attempt 2 runs immediately (after a short wait) through this SAME pipeline. Nothing is shown to the player in between, and no local/canned answer is ever produced here. */
+for(nTry=0;nTry<2;nTry++){if(dead())throw stale();let wait=900,fatal=false;
+try{outer:for(const u of EPS){if(isDead(u)&&EPS.some(v=>!isDead(v)))continue;
+const shapes=/\/chat$/.test(u)?(SHAPE[u]=='simple'?['simple','full']:['full','simple']):['full'];
+for(const sh of shapes){const res=await one(u,sh);
+if(res.o){SHAPE[u]=sh;s.aiErr=null;s.okTurn=1;s.lastAI=res.o;aiStat('g');return JSON.stringify(res.o)}
+last=res.err;if(res.next==='stop'){wait=res.wait;break outer}if(res.next==='fatal'){fatal=true;break outer}if(res.next==='ep')break}}}
+catch(e){if(dead()||e.s===-1)throw stale();last=e}
+if(fatal)break;if(nTry===0)await slp(wait)}
+if(!last)last=mkErr(0,'no endpoint');
 if(!s.okTurn){s.aiErr=last;aiStat('r')}else aiStat('g');
 throw last};
 addEventListener('unhandledrejection',e=>{if(e.reason&&(e.reason.retry||(e.reason.message==='stale')))e.preventDefault()});
@@ -2122,8 +2137,11 @@ const t0=Date.now();while(busy&&!s.hung&&Date.now()-t0<6000)await sl(120);saveSn
 const _th=think;think=function(q){const s=SES.cur;if(!s||s.state!=='active')return new Promise(()=>{});if(s.pendP)return s.pendP;
 const t0=Date.now(),key=nk(q);q=String(q||'');recQ(s,q);s.aiErr=null;s.okTurn=0;s.fails=s.fails||{};
 const gone=()=>SES.cur!==s||s.state!=='active',hang=()=>{s.hung=1;return new Promise(()=>{})},slow=setTimeout(()=>{try{toast('WAITING FOR THE SUSPECT...')}catch(e){}},9000);
-const P=(async()=>{let r=null;s.inflight=(s.inflight||0)+1;try{r=await _th.call(this,q)}catch(e){}finally{s.inflight--;clearTimeout(slow)}
+const P=(async()=>{let r=null;s.inflight=(s.inflight||0)+1;s.lastAI=null;try{r=await _th.call(this,q)}catch(e){try{console.error('think chain error',e)}catch(x){}}finally{s.inflight--;clearTimeout(slow)}
 if(gone())return hang();
+/* a real AI answer was received this turn: never let a later wrapper error or a stray error object replace it with a canned line */
+if((!r||r.aiError)&&s.okTurn&&s.lastAI)r=Object.assign({},s.lastAI);
+if(!r&&!s.okTurn&&!s.aiErr)s.aiErr=mkErr(-2,'empty');
 if(r&&r.aiError&&!s.aiErr&&!s.okTurn)s.aiErr=mkErr(-2,'unusable');if(s.aiErr&&!s.okTurn&&!s.aiErr.stale){const n=s.fails[key]=(s.fails[key]||0)+1,evT=/PRESENTS Evidence/.test(hist[hist.length-1]||'');
 if(n<2&&!evT){await sl(Math.max(0,2300-(Date.now()-t0)));if(gone())return hang();
 s.mem.questions.pop();if(/^DETECTIVE:/.test(hist[hist.length-1]||''))hist.pop();
