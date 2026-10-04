@@ -1785,10 +1785,10 @@ document.addEventListener('visibilitychange',()=>H.classList.toggle('an5-hid',do
 (()=>{
 /* ===== central config ===== */
 const APP_VERSION="00.03.00";
-const UPDATE_NOTES=["NEW ERA Case 01 added: The Night Stalker: The Shadow File (14 evidence items, 6-night timeline, full cutscenes)","New animated Play screen with sound effects","Suspect AI now locked to the case timeline and story","Game now runs on the web: AI works with no key needed","Case 008 teaser added: coming soon","Added the main menu: Case Selection, AI / API Setup, Data Context, Update Log","Added Groq AI connection with live status light and connection test","Suspects can answer through your own Groq key and fall back to built-in answers when AI is offline","Added progress tracking that survives reloads","Added cinematic menu transitions and a mobile layout","The in-game MENU button now returns to the main menu"];
+const UPDATE_NOTES=["NEW ERA Case 01 added: The Night Stalker: The Shadow File (14 evidence items, 6-night timeline, full cutscenes)","New animated Play screen with sound effects","Suspect AI now locked to the case timeline and story","Game now runs on the web: AI works with no key needed","Case 008 teaser added: coming soon","Added the main menu: Case Selection, AI / API Setup, Data Context, Update Log","Suspect AI now runs on Google Gemini through the game server, with live status light and connection test","The API key stays on the server; if the AI cannot answer you are asked to retry instead of getting a canned reply","Added progress tracking that survives reloads","Added cinematic menu transitions and a mobile layout","The in-game MENU button now returns to the main menu"];
 const IN_CLAUDE=!!window.claude;
 const WEB=!IN_CLAUDE&&/^https?:$/.test(location.protocol);
-const AI={endpoint:WEB?"/.netlify/functions/chat":"https://api.groq.com/openai/v1/chat/completions",models:WEB?["auto"]:["llama-3.3-70b-versatile","llama-3.1-8b-instant"],proxy:WEB};
+const AI={endpoint:"/.netlify/functions/interrogate",models:["gemini"],proxy:true};
 /* ========================== */
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)],wt=ms=>new Promise(r=>setTimeout(r,ms));
 const RM=matchMedia('(prefers-reduced-motion:reduce)').matches,F=RM?.3:1;
@@ -1801,15 +1801,15 @@ const st=(c)=>`<span class="aiS ${c||''}" data-st><i class="dot"></i><em data-tx
 const BK='<button class="mmb msx bk" data-go="home"><b>◀ BACK</b></button>';
 document.body.insertAdjacentHTML('beforeend',`<div id="mm" class="hold"><div class="bg"><i class="mcone"></i><i class="grid"></i><i class="mscn"></i>${[8,22,37,51,66,80,92].map((x,i)=>`<b class="mdt" style="left:${x}%;animation-delay:-${i*2}s"></b>`).join('')}<i class="vg"></i></div>
 <section class="mms on" id="s-home"><div class="pan"><div><h1 class="hd1">THE INTERROGATION</h1><p class="mhd2">Investigation command center</p></div>
-<div class="card" style="display:flex;flex-direction:column;gap:10px">${mb('case','case','CASE SELECTION','Open the case archive')}${mb('ai','ai','AI / API SETUP','Connect your own Groq key')}${mb('data','data','DATA CONTEXT','Your investigation progress')}${mb('log','log','UPDATE LOG','What changed in this version')}</div>
+<div class="card" style="display:flex;flex-direction:column;gap:10px">${mb('case','case','CASE SELECTION','Open the case archive')}${mb('ai','ai','AI / API SETUP','Gemini AI status and connection test')}${mb('data','data','DATA CONTEXT','Your investigation progress')}${mb('log','log','UPDATE LOG','What changed in this version')}</div>
 <div style="text-align:center">${st()}</div></div></section>
 <section class="mms" id="s-ai"><div class="pan">${BK}<div class="card"><h2 class="hd1" style="font-size:18px;text-align:left">AI CORE</h2>
-<div class="row"><span>Provider</span><b>GROQ</b></div><div class="row"><span>Connection</span>${st()}</div>
+<div class="row"><span>Provider</span><b>GEMINI</b></div><div class="row"><span>Connection</span>${st()}</div>
 <div class="core" id="core"><i>●</i><i>● ●</i><i>● ● ●</i><p>CONNECTING TO AI...</p></div>
 <label class="lab" for="k" style="display:block;margin-top:12px">API KEY</label><input class="fld" id="k" type="password" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="••••••••••••••••••" data-lpignore="true">
 <div class="note" id="kmask" style="margin-bottom:8px"></div><label class="chk"><input type="checkbox" id="rem">Remember on this device (encrypted)</label>
 <div class="msg" id="kmsg"></div><div style="display:flex;flex-direction:column;gap:8px"><button class="mmb msx" id="ksave"><b>SAVE API KEY</b></button><button class="mmb msx" id="ktest"><b>TEST CONNECTION</b></button><button class="mmb msx red" id="kdel" style="display:none"><b>REMOVE KEY</b></button></div></div>
-<div class="card"><p class="note">Security: this is a browser-only game, so a key kept here is not fully secure. By default it lives in this tab's memory only. If you tick Remember it is encrypted with a non-extractable browser key, which still can't stop someone using your unlocked device. Use a restricted Groq key with a spend limit, and prefer your own backend proxy (set AI.proxy) when you have one. The key is never shown again, logged, or put in a URL.</p></div></div></section>
+<div class="card"><p class="note">Security: this is a browser-only game, so a key kept here is not fully secure. By default it lives in this tab's memory only. If you tick Remember it is encrypted with a non-extractable browser key, which still can't stop someone using your unlocked device. The Gemini key is never stored in the browser; it lives only on the game server. The key is never shown again, logged, or put in a URL.</p></div></div></section>
 <section class="mms" id="s-data"><div class="pan">${BK}<div class="card"><h2 class="hd1" style="font-size:18px;text-align:left">DATA CONTEXT</h2><p class="note">Counts come from your actual play. Nothing here reveals hidden answers.</p>
 <div class="lab" style="margin-top:12px">INVESTIGATION PROGRESS</div><div class="big" id="dpc">0%</div><div class="mbar"><i id="dbar"></i></div><div class="note" id="dcur"></div></div>
 <div class="gr"><div class="card"><div class="lab">Cases solved</div><div class="big" data-n="solved">00</div></div><div class="card"><div class="lab">In progress</div><div class="big" data-n="prog">00</div></div><div class="card"><div class="lab">Cases remaining</div><div class="big" data-n="rem">00</div></div><div class="card"><div class="lab">Evidence found</div><div class="big" data-n="ev">00</div></div><div class="card"><div class="lab">Evidence presented</div><div class="big" data-n="pr">00</div></div><div class="card"><div class="lab">Interrogations done</div><div class="big" data-n="int">00</div></div></div>
@@ -1823,7 +1823,7 @@ const mm=q('#mm'),men=q('#menu'),T=q('#mmT');
 /* ===== AI status ===== */
 const LB={g:'AI CONNECTED',y:'AI THINKING',r:'AI OFFLINE'};let S='r',KEY='',ORIG=null,mi=0,pend=0;
 const cfg=()=>{try{return JSON.parse(ls.get('cfi.ai'))||{}}catch(e){return{}}};
-const savecfg=o=>ls.set('cfi.ai',JSON.stringify(Object.assign({p:'groq'},cfg(),o)));
+const savecfg=o=>ls.set('cfi.ai',JSON.stringify(Object.assign({p:'gemini'},cfg(),o)));
 function setS(s,persist){S=s;qa('[data-st]').forEach(e=>{e.classList.remove('on-g','on-y','on-r');e.classList.add('on-'+s);e.querySelector('[data-tx]').textContent=LB[s]});q('#core').classList.toggle('on',s=='y');if(persist&&s!='y')savecfg({st:s});q('#kdel').style.display=KEY?'':'none';q('#kmask').textContent=KEY?'KEY LOADED  ••••••'+KEY.slice(-4):''}
 window.__aiStatus=v=>setS(v,v!='y');
 function parseAI(t){const fin=o=>{if(!o||typeof o!=='object'||typeof o.line!=='string')return null;const l=o.line.trim();if(!l)return null;o.line=l.slice(0,500);if(!MD.includes(o.mood))delete o.mood;if(!Array.isArray(o.unlock))o.unlock=[];return o};
@@ -1837,27 +1837,24 @@ const m=/"line"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(s);if(m){try{return fin({line:JS
 return fin({line:s.replace(/^["\u201c]|["\u201d]$/g,'')})}
 window.__parseAI=parseAI;
 const ad={json:async p=>{const ms=[{role:'system',content:'You play a suspect in a fictional police-interrogation video game. Sound like a real person under stress, never like an AI: short natural speech, contractions, hesitation, and emotion that matches your stage. First answer the detectives exact latest question, then add a small human reaction such as deflecting, getting defensive, or asking something back. Never repeat a sentence or phrase you already said in the transcript. Use specific details from your cover story (times, places, names) instead of vague replies. No stage directions, no asterisks. Follow the rules in the user message exactly. Reply with one JSON object only.'},{role:'user',content:p}];
-try{const t=await(window.__aiCall?window.__aiCall(ms,p):groq(ms,{json:1,temp:.85,max:300}));const o=parseAI(t);if(!o){const e=new Error('unusable');e.s=-2;throw e}if(S!='g')setS('g',1);return o}
+try{const t=await(window.__aiCall?window.__aiCall(ms,p):Promise.reject(Object.assign(new Error('AI pipeline not ready'),{s:0})));const o=parseAI(t);if(!o){const e=new Error('unusable');e.s=-2;throw e}if(S!='g')setS('g',1);return o}
 catch(e){if(e.s==401||e.s==403){KEY='';off()}else if(e.s===0)setS('r',1);throw e}}};
 window.__ad=ad;function on(){if(smp!==ad)ORIG=smp;smp=ad}function off(){if(smp===ad)smp=ORIG;setS('r',1)}
-async function groq(ms,o,key){key=key==null?KEY:key;const c=new AbortController(),tm=setTimeout(()=>c.abort(),o.t||20000);
-try{for(let mi=0;mi<AI.models.length;mi++){const h={'Content-Type':'application/json'};if(!AI.proxy)h.Authorization='Bearer '+key;
-const r=await fetch(AI.endpoint,{method:'POST',headers:h,signal:c.signal,body:JSON.stringify(Object.assign({model:AI.models[mi],messages:ms,temperature:o.temp==null?.7:o.temp,max_tokens:o.max||320},o.json?{response_format:{type:'json_object'}}:{}))});
-if(r.ok){const d=await r.json();return(d.choices&&d.choices[0].message.content)||''}
-let code='';try{code=((await r.json()).error||{}).code||''}catch(e){}
-if((r.status==404||r.status==429||r.status>=500||r.status==400&&/model|json/i.test(code))&&mi<AI.models.length-1)continue;const e=new Error('http');e.s=r.status;throw e}
-}catch(e){if(e.s==null)e.s=0;throw e}finally{clearTimeout(tm)}}
-const why=s=>s==401||s==403?'The key was not accepted. Check it and try again.':s==429?'Groq is limiting this key right now. Wait a moment and retry.':s===0?'Could not reach Groq. Check your connection.':'Connection failed. Try again.';
+async function aiPing(live){const c=new AbortController(),tm=setTimeout(()=>c.abort(),15000);
+try{const r=await fetch(AI.endpoint,{method:'POST',headers:{'Content-Type':'application/json'},signal:c.signal,body:JSON.stringify({ping:true,live:!!live})});
+if(!r.ok){const e=new Error('http');e.s=r.status;throw e}const d=await r.json();if(!d||!d.ok){const e=new Error('http');e.s=502;throw e}return 'CONNECTED'}
+catch(e){if(e.s==null)e.s=0;throw e}finally{clearTimeout(tm)}}
+const why=s=>s==401||s==403?'The key was not accepted. Check it and try again.':s==429?'The AI is rate limited right now. Wait a moment and retry.':s===0?'Could not reach the AI server. Check your connection.':'Connection failed. Try again.';
 /* encrypted optional storage */
 const idb=(m,k,v)=>new Promise((res,rej)=>{const o=indexedDB.open('cfi',1);o.onupgradeneeded=()=>o.result.createObjectStore('k');o.onerror=()=>rej();o.onsuccess=()=>{const s=o.result.transaction('k',m=='get'?'readonly':'readwrite').objectStore('k'),r=m=='get'?s.get(k):m=='put'?s.put(v,k):s.delete(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej()}});
 async function seal(s){let k=await idb('get','ck');if(!k){k=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);await idb('put','ck',k)}const iv=crypto.getRandomValues(new Uint8Array(12)),c=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,new TextEncoder().encode(s));return JSON.stringify([[...iv],[...new Uint8Array(c)]])}
 async function unseal(j){const[iv,c]=JSON.parse(j),k=await idb('get','ck');return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:new Uint8Array(iv)},k,new Uint8Array(c)))}
 const kmsg=(t,c)=>{const m=q('#kmsg');m.textContent=t;m.className='msg '+(c||'')};
 async function connect(cand,mode){if(pend)return;pend=1;const key=cand||KEY;
-if(!key&&!AI.proxy){kmsg('Enter your Groq API key first.','r');pend=0;return}
+if(!key&&!AI.proxy){kmsg('AI server not configured.','r');pend=0;return}
 setS('y');kmsg('');qa('#ksave,#ktest').forEach(b=>b.disabled=true);snd(440,.08);
 const rb=q('#kretry');if(rb)rb.remove();
-let ok=false,err=0;try{const t=await Promise.all([groq([{role:'user',content:'Respond with CONNECTED.'}],{max:8,temp:0,t:15000},key),wt(900*F)]);ok=/CONNECTED/i.test(t[0]||'')}catch(e){err=e.s||0}
+let ok=false,err=0;try{const t=await Promise.all([aiPing(true),wt(900*F)]);ok=/CONNECTED/i.test(t[0]||'')}catch(e){err=e.s||0}
 qa('#ksave,#ktest').forEach(b=>b.disabled=false);pend=0;
 if(ok){KEY=key;q('#k').value='';on();setS('g',1);kmsg('AI SYSTEM READY','g');
 if(mode=='save'){if(q('#rem').checked){try{ls.set('cfi.k',await seal(key));savecfg({rem:1})}catch(e){ls.del('cfi.k');savecfg({rem:0});kmsg('AI SYSTEM READY — saving is unavailable here, key kept for this session only.','g')}}else{ls.del('cfi.k');savecfg({rem:0})}}
@@ -1895,7 +1892,7 @@ men.style.display='none';mm.classList.add('on');
 const rel=()=>mm.classList.remove('hold');new MutationObserver((_,o)=>{if(!men.classList.contains('hold')){rel();o.disconnect()}}).observe(men,{attributes:true,attributeFilter:['class']});setTimeout(rel,7000);
 setS('r');const c0=cfg();
 if(AI.proxy){['label[for=k]','#k','#kmask','.chk','#ksave'].forEach(x=>{const e=q('#s-ai '+x);if(e)e.style.display='none'});const nt=q('#s-ai .card:last-child .note');if(nt)nt.textContent='The AI runs through the game server. You do not need a key.';
-setS('y');groq([{role:'user',content:'Respond with CONNECTED.'}],{max:8,temp:0,t:15000}).then(t=>{if(/CONNECTED/i.test(t||'')){on();setS('g')}else setS('r')}).catch(()=>setS('r'))}
+setS('y');aiPing(false).then(t=>{if(/CONNECTED/i.test(t||'')){on();setS('g')}else setS('r')}).catch(()=>setS('r'))}
 if(c0.rem&&ls.get('cfi.k')){unseal(ls.get('cfi.k')).then(k=>{KEY=k;on();setS(c0.st=='g'||c0.st=='on'?'g':'r')}).catch(()=>{ls.del('cfi.k');savecfg({rem:0})})}
 document.addEventListener('visibilitychange',()=>{mm.classList.toggle('hold',document.hidden)});
 })();
@@ -1985,7 +1982,7 @@ let went=0;const pb=$('#pb');pb.onclick=()=>{if(went)return;went=1;SFX.init();SF
 (()=>{try{if(typeof CASES!='undefined'&&CASES[6]&&!CASES[6].tl)CASES[6].tl=['6:52 PM Elena texts Daniel "Come alone. I found the file."','7:16 PM Daniel arrives at 17 Blackwood Lane','7:28 PM Elena arrives and parks far away','7:34 PM Elena enters the house','7:41 PM Daniel says he already sent copies of the financial evidence','7:46 PM argument becomes heated','7:49 PM Daniel records audio','7:53 PM physical struggle begins','7:55 PM Elena strikes Daniel with a heavy object','7:58 PM Daniel smartwatch records a sharp heart-rate change','8:02 PM Elena stages the scene','8:08 PM Daniel condition worsens','8:11 PM false text sent from Daniel phone','8:14 PM Elena takes the USB drive','8:18 PM Elena leaves','8:23 PM security camera captures Elena leaving','8:29 PM Elena drives away'];}catch(e){}
 const LOCK=()=>{const tl=(C.tl||[]).join(' ; ');return`\nTRUE TIMELINE (what really happened; you know it, but speak only per your COVER STORY until evidence breaks it): ${tl||'see HIDDEN TRUTH'}\nCASE LOCK: You are ${C.name}, the suspect about ${C.vic}. Facts come ONLY from HIDDEN TRUTH, COVER STORY, TRUE TIMELINE, evidence and your memory above. For any question about a time or place, compare it to the TRUE TIMELINE, then answer with the version in your COVER STORY (a lie, deflection, or "I don't remember" if the truth hurts you). NEVER invent a new location, person, witness, object, time, motive or relationship. If unsure say "I don't remember" or "I'm not answering that". Keep every earlier claim consistent; if the detective exposes a contradiction, respond to that contradiction instead of repeating yourself.\n`};
 if(typeof window.__bp=='function'){const _bp=window.__bp;window.__bp=function(){let p=_bp.apply(this,arguments);try{p=p.includes('\nRULES:')?p.replace('\nRULES:',()=>LOCK()+'RULES:'):p+LOCK()}catch(e){}return p}}
-if(typeof think=='function'){const _t=think;think=async function(q){const r=await _t.apply(this,arguments);try{if(r&&typeof r.line=='string'){if(/\b(as an ai|language model|i am an ai|i'm an ai|openai|groq)\b/i.test(r.line))return local(q);if(r.confess&&!(C.need(presented)&&presented.size>=C.auto))r.confess=false}}catch(e){}return r}}
+if(typeof think=='function'){const _t=think;think=async function(q){const r=await _t.apply(this,arguments);try{if(r&&typeof r.line=='string'){if(r.confess&&!(C.need(presented)&&presented.size>=C.auto))r.confess=false}}catch(e){}return r}}
 if(/[?&]debug=1/.test(location.search)){const d=document.createElement('pre');d.style.cssText='position:fixed;left:6px;bottom:6px;z-index:99999;max-width:92vw;max-height:40vh;overflow:auto;margin:0;padding:8px;font:10px monospace;color:#7fffb0;background:#000c;border:1px solid #7fffb055;white-space:pre-wrap';document.body.append(d);setInterval(()=>{try{d.textContent=`DEBUG\nCASE ${C.n} | SUSPECT ${C.name}\nSTAGE ${ST[stage()]}\nLAST Q ${hist[hist.length-1]||'-'}\nCLAIMS ${claims.join(' | ')||'-'}\nTIMELINE ${(C.tl||[]).length} lines\nFOUND ${[...found]} PRESENTED ${[...presented]}\nAI CONTEXT LOADED`}catch(e){d.textContent='DEBUG (no case open)'}},800)}})();
 </script>
 <script id="ctx-js">
@@ -2071,7 +2068,7 @@ if(cpv()>=40&&(C.adm||[]).some(a=>overlap(a,l)))m.admissions.push(l.slice(0,140)
 /* ===== validation / sanitising of AI output ===== */
 const fc={};function foreign(c){if(fc[c.n])return fc[c.n];const own=(c.name+' '+c.vic+' '+(D(c).full||'')+' '+c.truth+' '+c.story+' '+(c.tl||[]).join(' ')+' '+c.ev.map(e=>e.d).join(' ')).toLowerCase(),o=new Set();CASES.forEach(x=>{if(x===c)return;(x.name+' '+x.vic+' '+(D(x).full||'')).split(/\s+/).forEach(w=>{w=w.replace(/[^A-Za-z]/g,'');if(w.length>=4&&!own.includes(w.toLowerCase()))o.add(w[0].toUpperCase()+w.slice(1).toLowerCase())})});return fc[c.n]=[...o]}
 function sanitize(r,s,q){if(!r||typeof r.line!='string')return r;let bad=/\b(as an ai|language model|i am an ai|openai|groq)\b/i.test(r.line)||foreign(C).some(w=>new RegExp('\\b'+w+'\\b').test(r.line));
-if(bad){const l=local(q);r.line=l.line;if(l.mood)r.mood=l.mood;r.contradiction=false}return r}
+if(bad)r.__bad=1;return r}
 {const _lc=window.__lc;if(typeof _lc=='function')window.__lc=function(q){const r=_lc.apply(this,arguments);try{const said=new Set(hist.filter(h=>h.startsWith(C.name+': ')).map(h=>h.slice(C.name.length+2).replace(/ \(.*\)$/,'')));
 if(r&&said.has(r.line)){const pool=[].concat(cpv()>=40?(C.adm||[]):[],['I already told you what I told the police. '+C.open,'You keep circling back to that. I answered you already.','I have nothing more to add about that.','Ask me something I have not already answered.']),f=pool.find(x=>!said.has(x));if(f)r.line=f}}catch(e){}return r}}
 /* ===== final decision (99% -> one case-specific question -> 100%) ===== */
@@ -2085,7 +2082,7 @@ if(!fd.block&&cpv()>=98.5){setP(99);fd.armed=true;fd.hinted=0;window.FINAL_DECIS
 return r}
 setInterval(()=>{const s=SES.cur;if(!s||s.state!=='active'||!s.fd.armed||s.fd.hinted||busy||done)return;const i=$('#q');if(i&&!i.value){i.value=s.fd.q;s.fd.hinted=1}},400);
 /* ===== AI request: every call carries the case id, session id, full context and state ===== */
-const EPS=['/.netlify/functions/interrogate','/.netlify/functions/chat'],DEADEP=new Map(),SHAPE={},DEAD_TTL=300000,REQ_TO=30000;let AISET=null;
+const EPS=['/.netlify/functions/interrogate'],DEADEP=new Map(),SHAPE={},DEAD_TTL=300000,REQ_TO=30000;let AISET=null;
 try{sessionStorage.removeItem('cfi.deadEP');const o=JSON.parse(sessionStorage.getItem('cfi.deadEP2')||'{}');Object.keys(o).forEach(u=>{if(Date.now()-o[u]<DEAD_TTL)DEADEP.set(u,o[u])})}catch(e){}
 const isDead=u=>{const t=DEADEP.get(u);if(t==null)return false;if(Date.now()-t>DEAD_TTL){DEADEP.delete(u);return false}return true},
 markDead=u=>{DEADEP.set(u,Date.now());try{sessionStorage.setItem('cfi.deadEP2',JSON.stringify(Object.fromEntries(DEADEP)))}catch(e){}},slp=ms=>new Promise(r=>setTimeout(r,ms)),aiStat=v=>{try{if(v!='y')AISET=v;window.__aiStatus&&window.__aiStatus(v)}catch(e){}};
@@ -2111,7 +2108,7 @@ const st=r.status;
 if(st===404||st===405){markDead(u);L(false,st,'endpoint missing');return{err:mkErr(st,'missing'),next:'ep'}}
 if(st===429){const w=await waitFrom(r,2500);L(false,st,'rate limited, wait '+w+'ms');return{err:mkErr(429,'rate'),next:'stop',wait:w}}
 if(st===401||st===403){L(false,st,'auth');return{err:mkErr(st,'auth'),next:'fatal'}}
-let b='';try{b=(await r.text()).slice(0,160)}catch(e){}L(false,st,b);return{err:mkErr(st,'http'),next:'shape'}}
+let b='';try{b=(await r.text()).slice(0,160)}catch(e){}L(false,st,b);if(/"aiError"\s*:\s*true/.test(b))return{err:mkErr(st,'gemini'),next:'fatal'};return{err:mkErr(st,'http'),next:'shape'}}
 finally{clearTimeout(to);s.acs.delete(ac)}};
 /* automatic retry: attempt 1 fails -> attempt 2 runs immediately (after a short wait) through this SAME pipeline. Nothing is shown to the player in between, and no local/canned answer is ever produced here. */
 for(nTry=0;nTry<2;nTry++){if(dead())throw stale();let wait=900,fatal=false;
@@ -2142,15 +2139,19 @@ if(gone())return hang();
 /* a real AI answer was received this turn: never let a later wrapper error or a stray error object replace it with a canned line */
 if((!r||r.aiError)&&s.okTurn&&s.lastAI)r=Object.assign({},s.lastAI);
 if(!r&&!s.okTurn&&!s.aiErr)s.aiErr=mkErr(-2,'empty');
-if(r&&r.aiError&&!s.aiErr&&!s.okTurn)s.aiErr=mkErr(-2,'unusable');if(s.aiErr&&!s.okTurn&&!s.aiErr.stale){const n=s.fails[key]=(s.fails[key]||0)+1,evT=/PRESENTS Evidence/.test(hist[hist.length-1]||'');
-if(n<2&&!evT){await sl(Math.max(0,2300-(Date.now()-t0)));if(gone())return hang();
+if(r&&r.aiError&&!s.aiErr&&!s.okTurn)s.aiErr=mkErr(-2,'unusable');const evT=/PRESENTS Evidence/.test(hist[hist.length-1]||'');
+const failTurn=async why=>{await sl(Math.max(0,2300-(Date.now()-t0)));if(gone())return hang();
+if(evT&&s.evSnap){presented=s.evSnap.presented;used=s.evSnap.used;facts=s.evSnap.facts;exposed=s.evSnap.exposed;rating=s.evSnap.rating;mist=s.evSnap.mist;try{$('#ecard').className='paper out'}catch(e){}}
 s.mem.questions.pop();if(/^DETECTIVE:/.test(hist[hist.length-1]||''))hist.pop();
-try{$('#det').classList.remove('lean');mood('calm');cam('');lock(false);const i=$('#q');if(i)i.value=q.slice(0,200);toast('AI CONNECTION FAILED - TAP ASK TO RETRY');log('d','NOTE','The suspect did not answer (network or API error). Your evidence and progress are safe. Ask again.');{const lp=$('#log').lastElementChild;if(lp)lp.dataset.aiErr='1'}}catch(e){}
-busy=false;throw Object.assign(new Error('RETRY'),{retry:1})}
-try{toast('AI OFFLINE - BACKUP ANSWER')}catch(e){}r=null}
-if(!r)r=local(q);else{try{document.querySelectorAll('#log [data-ai-err]').forEach(n=>n.remove())}catch(e){}}r=sanitize(r,s,q);r=fdTurn(s,r);recA(s,q,r);s.fails={};return r})();
+try{$('#det').classList.remove('lean');mood('calm');cam('');lock(false);const i=$('#q');if(i&&!evT)i.value=q.slice(0,200);toast('AI CONNECTION FAILED - TAP ASK TO RETRY');log('d','NOTE','The suspect did not answer ('+why+'). Your evidence, score and progress are unchanged. '+(evT?'Present the evidence again.':'Ask again.'));{const lp=$('#log').lastElementChild;if(lp)lp.dataset.aiErr='1'}}catch(e){}
+busy=false;throw Object.assign(new Error('RETRY'),{retry:1})};
+if(s.aiErr&&!s.okTurn&&!s.aiErr.stale)await failTurn('network or API error');
+if(!r)await failTurn('empty answer');
+try{document.querySelectorAll('#log [data-ai-err]').forEach(n=>n.remove())}catch(e){}
+r=sanitize(r,s,q);if(r&&r.__bad)await failTurn('unusable answer');r=fdTurn(s,r);recA(s,q,r);s.fails={};return r})();
 s.pendP=P;const clr=()=>{if(s.pendP===P)s.pendP=null};P.then(clr,clr);P.catch(()=>{});return P};
 const _as=ask;ask=function(q,ev){const s=SES.cur;if(!s||s.state!=='active'){try{toast(SES.closing?'CLOSING INTERROGATION...':'CASE FILE LOADING...')}catch(e){}return}if(s.pendP||busy)return;
+s.evSnap=ev?{presented:new Set(presented),used:used.slice(),facts:facts.slice(),exposed:new Set(exposed),rating,mist:mist.slice()}:null;
 if(!ev&&q&&s.fd.armed&&!busy&&!done&&!META.test(q)&&q.trim().length>1&&!new RegExp(D(C).fq.k,'i').test(q)){q=s.fd.q;try{log('d','FINAL QUESTION',q)}catch(e){}}return _as.call(this,q,ev)};
 const _pr=prompt;prompt=function(){const t=_pr.apply(this,arguments),s=SES.cur;return(typeof t=='string'&&s&&s.state==='active'&&s.ctx)?t+caseBlock(s):t};
 const _fi=finish;finish=async function(){const s=SES.cur;try{return await _fi.apply(this,arguments)}finally{if(s){ls.d('cfi.case.v2.'+s.caseId);closeSession(s,'solved')}}};
