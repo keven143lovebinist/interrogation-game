@@ -5,7 +5,7 @@
 const MODELS = (process.env.GEMINI_MODEL
   ? [process.env.GEMINI_MODEL]
   : []
-).concat(['gemini-2.5-flash-lite', 'gemini-2.5-flash']);
+).concat(['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest']);
 const API = 'https://generativelanguage.googleapis.com/v1beta/models/';
 const MOODS = ['calm', 'defensive', 'nervous', 'angry', 'panicked', 'broken', 'scared', 'down'];
 const BUDGET_MS = 9000;      // Netlify's default sync limit is 10 s
@@ -18,7 +18,7 @@ const HEAD = {
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-const reply = (status, obj) => ({ statusCode: status, headers: HEAD, body: JSON.stringify(obj) });
+const reply = (status, obj) => new Response(JSON.stringify(obj), { status, headers: HEAD });
 const failure = (ids) => reply(502, Object.assign(
   { line: '', aiError: true, error: 'AI connection failed' }, ids || {}));
 
@@ -115,6 +115,9 @@ async function callGemini(model, key, payload, ms) {
   } finally { clearTimeout(to); }
 }
 
+// Google's error text (never contains the key), shortened for logs and the ping "reason".
+const errMsg = (data) => String((data && data.error && (data.error.message || data.error.status)) || '').slice(0, 200);
+
 function buildPayload(body, extraNote) {
   const msgs = Array.isArray(body.messages) ? body.messages : [];
   const sys = msgs.filter((m) => m && m.role === 'system').map((m) => String(m.content || '')).join('\n');
@@ -135,15 +138,16 @@ function buildPayload(body, extraNote) {
   };
 }
 
-exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: HEAD, body: '' };
-  if (event.httpMethod !== 'POST') return reply(405, { error: 'POST only' });
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: HEAD });
+  if (req.method !== 'POST') return reply(405, { error: 'POST only' });
 
   const key = process.env.GEMINI_API_KEY;
   let body;
   try {
-    if (event.body && event.body.length > MAX_BODY) return reply(413, { error: 'Request too large' });
-    body = JSON.parse(event.isBase64Encoded ? Buffer.from(event.body || '', 'base64').toString('utf8') : (event.body || '{}'));
+    const raw = await req.text();
+    if (raw.length > MAX_BODY) return reply(413, { error: 'Request too large' });
+    body = JSON.parse(raw || '{}');
   } catch (e) { return reply(400, { error: 'Invalid JSON' }); }
   const ids = { sessionId: body.sessionId, caseId: body.caseId };
 
@@ -156,7 +160,10 @@ exports.handler = async (event) => {
       contents: [{ role: 'user', parts: [{ text: 'Reply with OK' }] }],
       generationConfig: { maxOutputTokens: 8 },
     }, 6000);
-    return r.status === 200 ? reply(200, { ok: true }) : reply(502, { ok: false, aiError: true, error: 'AI connection failed' });
+    if (r.status === 200) return reply(200, { ok: true });
+    const reason = 'status ' + r.status + ' ' + (r.err || errMsg(r.data));
+    console.error('Gemini ping failed (' + MODELS[0] + '): ' + reason);
+    return reply(502, { ok: false, aiError: true, error: 'AI connection failed', reason });
   }
 
   const prev = previousSuspectLines(body.history);
@@ -187,7 +194,7 @@ exports.handler = async (event) => {
       }
       note = 'Return a valid JSON object with spoken dialogue only.';
     } else {
-      console.error('Gemini attempt ' + (attempt + 1) + ' failed: status ' + r.status + ' ' + (r.err || ''));
+      console.error('Gemini attempt ' + (attempt + 1) + ' failed (' + MODELS[mi] + '): status ' + r.status + ' ' + (r.err || errMsg(r.data)));
       if (r.status === 400 && /API key/i.test(JSON.stringify(r.data || {}))) break;   // bad key: retrying is pointless
       if (attempt === 0) await new Promise((res) => setTimeout(res, r.status === 429 ? 1200 : 400));
     }
